@@ -2,9 +2,12 @@
   "manifest_version": 3,
   "name": "Git Alert",
   "version": "1.0.1",
-  "description": "Monitor GitHub PRs, get notified on assignments, and set review reminders.",
+  "description": "Monitor Azure DevOps PRs, get notified on assignments, and set review reminders.",
   "permissions": ["storage", "alarms", "notifications"],
-  "host_permissions": ["https://api.github.com/*"],
+  "host_permissions": [
+    "https://dev.azure.com/*",
+    "https://app.vssps.visualstudio.com/*"
+  ],
   "action": {
     "default_popup": "src/popup/popup.html",
     "default_icon": {

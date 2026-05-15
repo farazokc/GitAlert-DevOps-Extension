@@ -4,12 +4,20 @@ import * as UI from "./ui.js";
 let availableRepos = [];
 let currentUrgentTags = [];
 
+function encodeBasicAuthToken(token) {
+  return btoa(`:${token}`);
+}
+
 document.addEventListener("DOMContentLoaded", init);
 
 async function init() {
   const config = await getStorage([
+    "organization",
+    "projectId",
+    "projectName",
     "token",
     "repos",
+    "availableRepos",
     "reminders",
     "urgentTags",
     "notificationsEnabled",
@@ -18,11 +26,14 @@ async function init() {
     "lastFetch",
     "username",
     "userAvatarUrl",
+    "userIdentityEmail",
+    "identityVerificationState",
   ]);
 
   currentUrgentTags = config.urgentTags || ["Important", "Urgent", "Critical"];
+  availableRepos = config.availableRepos || [];
 
-  if (!config.token) {
+  if (!config.token || !config.organization) {
     UI.showSetup();
   } else {
     UI.showApp(config, currentUrgentTags);
@@ -44,22 +55,36 @@ async function init() {
 }
 
 function bindEvents() {
-  // Token
   document
     .getElementById("saveTokenBtn")
     .addEventListener("click", validateAndSaveToken);
+  document
+    .getElementById("confirmIdentityBtn")
+    .addEventListener("click", confirmIdentity);
   document.getElementById("tokenInput").addEventListener("keypress", (e) => {
     if (e.key === "Enter") validateAndSaveToken();
   });
+  document
+    .getElementById("organizationInput")
+    .addEventListener("keypress", (e) => {
+      if (e.key === "Enter") validateAndSaveToken();
+    });
 
   document
     .getElementById("disconnectBtn")
     .addEventListener("click", async () => {
       await setStorage({
+        organization: "",
+        projectId: "",
+        projectName: "",
         token: "",
         username: "",
+        userEmail: "",
         userAvatarUrl: "",
+        userIdentityEmail: "",
+        identityVerificationState: "unverified",
         repos: [],
+        availableRepos: [],
         prData: null,
         lastFetch: null,
         knownAssignments: [],
@@ -73,14 +98,16 @@ function bindEvents() {
       document.getElementById("userLogin").textContent = "";
       document.getElementById("refreshBtn").style.display = "none";
       document.getElementById("settingsBtn").style.display = "none";
+      document.getElementById("organizationInput").value = "";
       document.getElementById("tokenInput").value = "";
+      document.getElementById("userIdentityEmailInput").value = "";
       document.getElementById("tokenError").style.display = "none";
+      document.getElementById("identityStatus").style.display = "none";
 
       UI.resetDashboard();
       UI.showSetup();
     });
 
-  // Tabs
   document.querySelectorAll(".tab").forEach((tab) => {
     tab.addEventListener("click", () => {
       document
@@ -123,7 +150,6 @@ function bindEvents() {
     });
   });
 
-  // Discovery
   document
     .getElementById("discoverReposBtn")
     .addEventListener("click", openDiscoveryPanel);
@@ -147,7 +173,6 @@ function bindEvents() {
       );
     });
 
-  // Event Delegation
   document.getElementById("prContent").addEventListener("click", (e) => {
     const prItem = e.target.closest(".pr-item");
     if (prItem && prItem.dataset.url) window.open(prItem.dataset.url, "_blank");
@@ -155,16 +180,16 @@ function bindEvents() {
 
   document.getElementById("repoList").addEventListener("click", (e) => {
     if (e.target.classList.contains("repo-remove-btn")) {
-      const repo = e.target.dataset.repo;
-      if (repo) removeRepo(repo);
+      const repoId = e.target.dataset.repoId;
+      if (repoId) removeRepo(repoId);
     }
   });
 
   document.getElementById("discoveryResults").addEventListener("click", (e) => {
     const item = e.target.closest(".discovery-item");
     if (item && !item.classList.contains("connected")) {
-      const fullName = item.dataset.repo;
-      if (fullName) addRepoFromDiscovery(fullName);
+      const repoId = item.dataset.repoId;
+      if (repoId) addRepoFromDiscovery(repoId);
     }
   });
 
@@ -184,47 +209,87 @@ function bindEvents() {
 }
 
 async function validateAndSaveToken() {
+  const organizationInput = document.getElementById("organizationInput");
   const tokenInput = document.getElementById("tokenInput");
+  const userIdentityEmailInput = document.getElementById(
+    "userIdentityEmailInput",
+  );
   const saveBtn = document.getElementById("saveTokenBtn");
-  const errorEl = document.getElementById("tokenError");
+  const organization = organizationInput.value.trim();
   const token = tokenInput.value.trim();
+  const userIdentityEmail = userIdentityEmailInput.value.trim();
 
-  if (!token) {
-    UI.showTokenError("Please enter a token.");
+  if (!organization || !token || !userIdentityEmail) {
+    UI.showTokenError(
+      "Please enter an organization, personal access token, and email address.",
+    );
     return;
   }
 
   saveBtn.disabled = true;
   saveBtn.innerHTML = '<span class="btn-spinner"></span> Validating...';
-  errorEl.style.display = "none";
+  document.getElementById("tokenError").style.display = "none";
+  document.getElementById("identityStatus").style.display = "none";
 
   try {
-    const res = await fetch("https://api.github.com/user", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/vnd.github.v3+json",
+    const auth = `Basic ${encodeBasicAuthToken(token)}`;
+    const reposRes = await fetch(
+      `https://dev.azure.com/${encodeURIComponent(organization)}/_apis/git/repositories?api-version=7.1`,
+      {
+        headers: {
+          Authorization: auth,
+          Accept: "application/json",
+        },
       },
-    });
+    );
 
-    if (!res.ok) {
+    if (!reposRes.ok) {
       const msg =
-        res.status === 401
-          ? "Invalid token — authentication failed."
-          : res.status === 403
-            ? "Token lacks required permissions (needs \`repo\` scope)."
-            : `GitHub returned an error (${res.status}).`;
+        reposRes.status === 401 || reposRes.status === 203
+          ? "The token cannot access this Azure DevOps organization."
+          : `Could not read repositories from ${organization} (${reposRes.status}).`;
       UI.showTokenError(msg);
       return;
     }
 
-    const user = await res.json();
+    const repoPayload = await reposRes.json();
+    const repos = (repoPayload.value || []).map((repo) => ({
+      repositoryId: repo.id,
+      repositoryName: repo.name,
+      projectId: repo.project?.id || "",
+      projectName: repo.project?.name || "",
+      remoteUrl: repo.remoteUrl || repo.webUrl || "",
+    }));
+
+    availableRepos = repos;
+    const defaultProject =
+      repos.find((repo) => repo.projectName === "VL-Core") || repos[0];
+
     await setStorage({
+      organization,
       token,
-      username: user.login,
-      userAvatarUrl: user.avatar_url,
+      availableRepos: repos,
+      repos: defaultProject
+        ? repos.filter((repo) => repo.projectId === defaultProject.projectId)
+        : [],
+      projectId: defaultProject?.projectId || "",
+      projectName: defaultProject?.projectName || "",
+      userId: "",
+      userDescriptor: "",
+      username: "",
+      userEmail: "",
+      userAvatarUrl: "",
+      userIdentityEmail,
+      identityVerificationState: "unverified",
+      prData: null,
+      lastFetch: null,
+      knownAssignments: [],
     });
 
     const config = await getStorage([
+      "organization",
+      "projectId",
+      "projectName",
       "token",
       "repos",
       "reminders",
@@ -235,6 +300,8 @@ async function validateAndSaveToken() {
       "lastFetch",
       "username",
       "userAvatarUrl",
+      "userIdentityEmail",
+      "identityVerificationState",
     ]);
     currentUrgentTags = config.urgentTags || [
       "Important",
@@ -244,11 +311,44 @@ async function validateAndSaveToken() {
     UI.showApp(config, currentUrgentTags);
     fetchPRs();
   } catch {
-    UI.showTokenError("Network error — could not reach GitHub.");
+    UI.showTokenError("Network error — could not reach Azure DevOps.");
   } finally {
     saveBtn.disabled = false;
     saveBtn.textContent = "Connect";
   }
+}
+
+function confirmIdentity() {
+  chrome.runtime.sendMessage({ type: "CONFIRM_IDENTITY" }, async (response) => {
+    if (!response || !response.success) {
+      UI.showTokenError(response?.error || "Could not confirm identity.");
+      return;
+    }
+
+    const config = await getStorage([
+      "organization",
+      "projectId",
+      "projectName",
+      "token",
+      "repos",
+      "reminders",
+      "urgentTags",
+      "notificationsEnabled",
+      "urgentNotificationsEnabled",
+      "prData",
+      "lastFetch",
+      "username",
+      "userAvatarUrl",
+      "userIdentityEmail",
+      "identityVerificationState",
+    ]);
+    currentUrgentTags = config.urgentTags || [
+      "Important",
+      "Urgent",
+      "Critical",
+    ];
+    UI.showApp(config, currentUrgentTags);
+  });
 }
 
 function fetchPRs() {
@@ -289,6 +389,7 @@ function openDiscoveryPanel() {
     btn.disabled = false;
     if (response && response.success && response.repos) {
       availableRepos = response.repos;
+      await setStorage({ availableRepos });
       const config = await getStorage(["repos"]);
       UI.renderDiscoveryResults(availableRepos, config.repos || [], "");
     } else {
@@ -300,28 +401,42 @@ function openDiscoveryPanel() {
 function closeDiscoveryPanel() {
   document.getElementById("discoveryOverlay").style.display = "none";
   document.getElementById("discoveryPanel").style.display = "none";
-  availableRepos = [];
 }
 
-async function addRepoFromDiscovery(fullName) {
-  const config = await getStorage(["repos"]);
+async function addRepoFromDiscovery(repoId) {
+  const config = await getStorage(["repos", "projectId", "projectName"]);
+  const repo = availableRepos.find((entry) => entry.repositoryId === repoId);
+  if (!repo) return;
+
   const repos = config.repos || [];
-  if (repos.includes(fullName)) return;
-  repos.push(fullName);
-  await setStorage({ repos });
-  UI.renderRepos(repos);
+  if (repos.some((entry) => entry.repositoryId === repo.repositoryId)) return;
+
+  const nextRepos = repos.concat(repo);
+  await setStorage({
+    repos: nextRepos,
+    projectId: repo.projectId,
+    projectName: repo.projectName,
+  });
+  UI.renderRepos(nextRepos);
   UI.renderDiscoveryResults(
     availableRepos,
-    repos,
+    nextRepos,
     document.getElementById("repoSearchInput").value,
   );
   fetchPRs();
 }
 
-async function removeRepo(repo) {
-  const config = await getStorage(["repos"]);
-  const repos = (config.repos || []).filter((r) => r !== repo);
-  await setStorage({ repos });
+async function removeRepo(repoId) {
+  const config = await getStorage(["repos", "projectId", "projectName"]);
+  const repos = (config.repos || []).filter(
+    (repo) => repo.repositoryId !== repoId,
+  );
+  const fallbackRepo = repos[0];
+  await setStorage({
+    repos,
+    projectId: fallbackRepo?.projectId || "",
+    projectName: fallbackRepo?.projectName || config.projectName || "",
+  });
   UI.renderRepos(repos);
   fetchPRs();
 }

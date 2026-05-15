@@ -29,18 +29,54 @@ export function showApp(config, currentUrgentTags) {
   renderTags(currentUrgentTags);
   renderToggles(config);
 
-  if (config.username) {
+  if (config.identityVerificationState === "verified" && config.username) {
     document.getElementById("userProfile").style.display = "flex";
     document.getElementById("userLogin").textContent = `@${config.username}`;
     if (config.userAvatarUrl) {
       document.getElementById("userAvatar").src = config.userAvatarUrl;
     }
+  } else {
+    document.getElementById("userProfile").style.display = "none";
   }
 
   if (config.prData) {
     renderDashboard(config.prData, currentUrgentTags);
     updateStatus(config.lastFetch);
   }
+
+  renderIdentityStatus(config);
+}
+
+export function renderIdentityStatus(config) {
+  const statusEl = document.getElementById("identityStatus");
+  const confirmBtn = document.getElementById("confirmIdentityBtn");
+
+  if (!statusEl || !confirmBtn) return;
+
+  if (config.identityVerificationState === "matched_unconfirmed") {
+    statusEl.textContent = `Matched Azure DevOps identity: ${config.username || config.userEmail}`;
+    statusEl.style.display = "block";
+    confirmBtn.style.display = "inline-flex";
+    return;
+  }
+
+  if (config.identityVerificationState === "verified") {
+    statusEl.textContent = `Verified as ${config.username || config.userEmail}`;
+    statusEl.style.display = "block";
+    confirmBtn.style.display = "none";
+    return;
+  }
+
+  if (config.userIdentityEmail) {
+    statusEl.textContent =
+      "Showing all open PRs. Confirm your identity to enable personal tracking.";
+    statusEl.style.display = "block";
+    confirmBtn.style.display = "none";
+    return;
+  }
+
+  statusEl.style.display = "none";
+  confirmBtn.style.display = "none";
 }
 
 export function renderRepos(repos) {
@@ -58,14 +94,13 @@ export function renderRepos(repos) {
 
   list.innerHTML = repos
     .map((repo) => {
-      const [owner, name] = repo.split("/");
       return `
       <div class="repo-item">
         <div>
-          <div class="repo-name">${name}</div>
-          <div class="repo-owner">${owner}</div>
+          <div class="repo-name">${repo.repositoryName}</div>
+          <div class="repo-owner">${repo.projectName}</div>
         </div>
-        <button class="btn btn-danger btn-sm repo-remove-btn" data-repo="${repo}">Remove</button>
+        <button class="btn btn-danger btn-sm repo-remove-btn" data-repo-id="${repo.repositoryId}">Remove</button>
       </div>`;
     })
     .join("");
@@ -193,9 +228,14 @@ export function updateStatus(lastFetch) {
 
 export function renderDiscoveryResults(availableRepos, connectedRepos, query) {
   const container = document.getElementById("discoveryResults");
+  const connectedRepoIds = new Set(
+    connectedRepos.map((repo) => repo.repositoryId),
+  );
   const filtered = availableRepos
     .filter((repo) =>
-      repo.full_name.toLowerCase().includes(query.toLowerCase()),
+      `${repo.projectName} ${repo.repositoryName}`
+        .toLowerCase()
+        .includes(query.toLowerCase()),
     )
     .slice(0, 50);
 
@@ -207,10 +247,10 @@ export function renderDiscoveryResults(availableRepos, connectedRepos, query) {
 
   container.innerHTML = filtered
     .map((repo) => {
-      const isConnected = connectedRepos.includes(repo.full_name);
+      const isConnected = connectedRepoIds.has(repo.repositoryId);
       return `
-      <div class="discovery-item ${isConnected ? "connected" : ""}" data-repo="${repo.full_name}">
-        <div class="repo-full-name">${repo.full_name}</div>
+      <div class="discovery-item ${isConnected ? "connected" : ""}" data-repo-id="${repo.repositoryId}">
+        <div class="repo-full-name">${repo.projectName} / ${repo.repositoryName}</div>
         ${isConnected ? '<span class="status-badge">Connected</span>' : '<span class="add-icon">+</span>'}
       </div>`;
     })

@@ -9,6 +9,7 @@ export default [
         console: "readonly",
         fetch: "readonly",
         chrome: "readonly",
+        btoa: "readonly",
         Promise: "readonly",
         setTimeout: "readonly",
         Math: "readonly",

@@ -1,14 +1,14 @@
 name: Feature Request
-description: What would enhance your GitAlert experience?
+description: What would enhance your GitAlert DevOps experience?
 title: "[Feature]: "
 labels: [enhancement]
 assignees:
-  - mustafabawany
+  - farazokc
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to suggest a feature for GitAlert!
+        Thanks for taking the time to suggest a feature for GitAlert DevOps!
   - type: textarea
     id: problem
     attributes:

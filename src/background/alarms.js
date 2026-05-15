@@ -6,6 +6,7 @@ export const POLL_INTERVAL_MINUTES = 2;
 
 export async function checkScheduledReminders() {
   const config = await getConfig();
+  if (config.identityVerificationState !== "verified") return;
   if (!config.notificationsEnabled) return;
   if (!config.reminders || config.reminders.length === 0) return;
   if (!config.prData || config.prData.stats.assignedToReview === 0) return;
@@ -28,6 +29,7 @@ export async function checkScheduledReminders() {
 
 export async function checkUrgentPRs() {
   const config = await getConfig();
+  if (config.identityVerificationState !== "verified") return;
   if (!config.urgentNotificationsEnabled) return;
   if (!config.prData || !config.prData.assignedToMe) return;
 
@@ -72,16 +74,18 @@ export async function handleAlarm(alarm) {
 export function setupAlarms() {
   // Ensure alarms exist on startup
   chrome.alarms.get("pollPRs", (alarm) => {
-    if (!alarm)
+    if (!alarm) {
       chrome.alarms.create("pollPRs", {
         periodInMinutes: POLL_INTERVAL_MINUTES,
       });
+    }
   });
   chrome.alarms.get("checkReminders", (alarm) => {
     if (!alarm) chrome.alarms.create("checkReminders", { periodInMinutes: 1 });
   });
   chrome.alarms.get("urgentPRReminder", (alarm) => {
-    if (!alarm)
+    if (!alarm) {
       chrome.alarms.create("urgentPRReminder", { periodInMinutes: 5 });
+    }
   });
 }
