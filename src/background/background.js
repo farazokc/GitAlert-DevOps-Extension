@@ -1,21 +1,30 @@
 import { POLL_INTERVAL_MINUTES, handleAlarm, setupAlarms } from "./alarms.js";
-import { pollPullRequests, githubFetch } from "./api.js";
-import { getConfig } from "./storage.js";
+import { fetchRepositories, pollPullRequests } from "./api.js";
+import { getConfig, setConfig } from "./storage.js";
 
 // Initialize on install
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === "install") {
     chrome.storage.local.set({
+      organization: "",
+      projectId: "",
+      projectName: "",
       token: "",
       repos: [],
+      availableRepos: [],
       reminders: [],
       urgentTags: ["Important", "Urgent", "Critical"],
       notificationsEnabled: true,
       urgentNotificationsEnabled: true,
       lastFetch: null,
       prData: null,
+      userId: "",
+      userDescriptor: "",
       username: "",
+      userEmail: "",
       userAvatarUrl: "",
+      userIdentityEmail: "",
+      identityVerificationState: "unverified",
       knownAssignments: [],
       lastUrgentNotified: {},
     });
@@ -38,11 +47,18 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
   if (msg.type === "FETCH_REPOS") {
-    getConfig().then((config) => {
-      githubFetch("/user/repos?per_page=100&sort=updated", config.token)
+    getConfig().then(() => {
+      fetchRepositories()
         .then((repos) => sendResponse({ success: true, repos }))
         .catch((err) => sendResponse({ success: false, error: err.message }));
     });
+    return true;
+  }
+  if (msg.type === "CONFIRM_IDENTITY") {
+    setConfig({ identityVerificationState: "verified" })
+      .then(() => pollPullRequests())
+      .then((data) => sendResponse({ success: true, data }))
+      .catch((err) => sendResponse({ success: false, error: err.message }));
     return true;
   }
 });
