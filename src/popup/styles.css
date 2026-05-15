@@ -1,18 +1,18 @@
 /* GitAlert DevOps Chrome Extension Styles */
 :root {
-  --bg-primary: #0d1117;
-  --bg-secondary: #161b22;
-  --bg-tertiary: #21262d;
-  --border: #30363d;
-  --text-primary: #e6edf3;
-  --text-secondary: #8b949e;
-  --text-muted: #6e7681;
-  --green: #3fb950;
-  --green-dim: #238636;
-  --blue: #58a6ff;
-  --orange: #d29922;
-  --red: #f85149;
-  --purple: #bc8cff;
+  --bg-primary: #0f172a;
+  --bg-secondary: #162033;
+  --bg-tertiary: #1e293b;
+  --border: #2b3a55;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --green: #00b294;
+  --green-dim: #0078d4;
+  --blue: #50b0ff;
+  --orange: #ffb020;
+  --red: #e74856;
+  --purple: #8b5cf6;
 }
 
 * {
@@ -110,7 +110,7 @@ body {
 .icon-btn:hover {
   background: var(--bg-tertiary);
   color: var(--text-primary);
-  border-color: #484f58;
+  border-color: #3b4c6b;
 }
 
 /* Setup / Token Screen */
@@ -192,7 +192,7 @@ body {
 .btn-primary {
   background: var(--green-dim);
   color: #fff;
-  border-color: rgba(63, 185, 80, 0.4);
+  border-color: rgba(0, 120, 212, 0.35);
 }
 
 .btn-primary:hover {
@@ -206,7 +206,7 @@ body {
 }
 
 .btn-secondary:hover {
-  background: #30363d;
+  background: #2b3a55;
 }
 
 .btn-danger {
@@ -216,7 +216,7 @@ body {
 }
 
 .btn-danger:hover {
-  background: rgba(248, 81, 73, 0.1);
+  background: rgba(231, 72, 86, 0.1);
 }
 
 .btn-sm {
@@ -252,7 +252,7 @@ body {
 
 .tab.active {
   color: var(--text-primary);
-  border-bottom-color: var(--green);
+  border-bottom-color: var(--green-dim);
 }
 
 .tab .badge {
@@ -327,7 +327,7 @@ body {
 }
 
 .stat-card.green .stat-value {
-  color: var(--green);
+  color: var(--green-dim);
 }
 .stat-card.blue .stat-value {
   color: var(--blue);
@@ -378,7 +378,7 @@ body {
 }
 
 .pr-icon.open {
-  color: var(--green);
+  color: var(--green-dim);
 }
 .pr-icon.changes {
   color: var(--orange);
@@ -423,15 +423,15 @@ body {
 }
 
 .pr-label.important {
-  background: rgba(248, 81, 73, 0.15);
+  background: rgba(231, 72, 86, 0.15);
   color: var(--red);
-  border-color: rgba(248, 81, 73, 0.3);
+  border-color: rgba(231, 72, 86, 0.3);
 }
 
 .pr-label.default {
-  background: rgba(88, 166, 255, 0.15);
+  background: rgba(80, 176, 255, 0.14);
   color: var(--blue);
-  border-color: rgba(88, 166, 255, 0.3);
+  border-color: rgba(80, 176, 255, 0.28);
 }
 
 /* Repos */
@@ -482,8 +482,8 @@ body {
 .token-error {
   margin-top: 10px;
   padding: 8px 12px;
-  background: rgba(248, 81, 73, 0.12);
-  border: 1px solid rgba(248, 81, 73, 0.35);
+  background: rgba(231, 72, 86, 0.12);
+  border: 1px solid rgba(231, 72, 86, 0.35);
   border-radius: 6px;
   color: var(--red);
   font-size: 12px;
@@ -650,9 +650,9 @@ body {
   flex-shrink: 0;
   font-size: 10px;
   padding: 2px 7px;
-  background: rgba(63, 185, 80, 0.12);
-  color: var(--green);
-  border: 1px solid rgba(63, 185, 80, 0.25);
+  background: rgba(0, 120, 212, 0.14);
+  color: var(--green-dim);
+  border: 1px solid rgba(0, 120, 212, 0.28);
   border-radius: 10px;
   font-weight: 600;
 }
@@ -666,8 +666,8 @@ body {
   justify-content: center;
   font-size: 16px;
   font-weight: 700;
-  color: var(--green);
-  background: rgba(63, 185, 80, 0.1);
+  color: var(--green-dim);
+  background: rgba(0, 120, 212, 0.1);
   border-radius: 50%;
   line-height: 1;
 }
@@ -695,8 +695,8 @@ body {
   gap: 8px;
   padding: 16px;
   margin: 8px;
-  background: rgba(248, 81, 73, 0.1);
-  border: 1px solid rgba(248, 81, 73, 0.25);
+  background: rgba(231, 72, 86, 0.1);
+  border: 1px solid rgba(231, 72, 86, 0.25);
   border-radius: 6px;
   color: var(--red);
   font-size: 12px;
@@ -739,7 +739,7 @@ body {
 
 .toggle.on {
   background: var(--green-dim);
-  border-color: var(--green);
+  border-color: var(--green-dim);
 }
 
 .toggle::after {
@@ -824,9 +824,9 @@ body {
   align-items: center;
   gap: 4px;
   padding: 3px 8px;
-  background: rgba(248, 81, 73, 0.15);
+  background: rgba(231, 72, 86, 0.15);
   color: var(--red);
-  border: 1px solid rgba(248, 81, 73, 0.3);
+  border: 1px solid rgba(231, 72, 86, 0.3);
   border-radius: 12px;
   font-size: 12px;
   font-weight: 600;
@@ -903,7 +903,7 @@ body {
 }
 
 .about-tagline-main span {
-  color: var(--green);
+  color: var(--green-dim);
 }
 
 .about-version-badge {
@@ -938,7 +938,7 @@ body {
 }
 
 .about-feature-card:hover {
-  border-color: #484f58;
+  border-color: #3b4c6b;
 }
 
 .about-feature-icon-box {
@@ -959,20 +959,24 @@ body {
 }
 
 .about-feature-icon-box.green {
-  color: var(--green);
-  border-color: rgba(63, 185, 80, 0.3);
+  color: var(--green-dim);
+  background: rgba(0, 120, 212, 0.12);
+  border-color: rgba(0, 120, 212, 0.28);
 }
 .about-feature-icon-box.blue {
   color: var(--blue);
-  border-color: rgba(88, 166, 255, 0.3);
+  background: rgba(80, 176, 255, 0.12);
+  border-color: rgba(80, 176, 255, 0.28);
 }
 .about-feature-icon-box.orange {
   color: var(--orange);
-  border-color: rgba(210, 153, 34, 0.3);
+  background: rgba(255, 176, 32, 0.12);
+  border-color: rgba(255, 176, 32, 0.28);
 }
 .about-feature-icon-box.purple {
   color: var(--purple);
-  border-color: rgba(188, 140, 255, 0.3);
+  background: rgba(139, 92, 246, 0.12);
+  border-color: rgba(139, 92, 246, 0.28);
 }
 
 .about-feature-info {
@@ -1063,7 +1067,7 @@ body {
 .about-social-btn:hover {
   background: var(--bg-secondary);
   color: var(--text-primary);
-  border-color: #484f58;
+  border-color: #3b4c6b;
 }
 
 .about-social-btn svg {
@@ -1079,7 +1083,7 @@ body {
   justify-content: center;
   gap: 6px;
   font-size: 12px;
-  color: #9ca3af;
+  color: #94a3b8;
   text-align: center;
 }
 
@@ -1106,7 +1110,7 @@ body {
 }
 
 .about-header-actions a:hover {
-  color: var(--green);
+  color: var(--green-dim);
 }
 
 .about-footer-icon {
@@ -1137,7 +1141,7 @@ body {
   width: 16px;
   height: 16px;
   border: 2px solid var(--border);
-  border-top-color: var(--green);
+  border-top-color: var(--green-dim);
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
 }
@@ -1175,5 +1179,5 @@ body {
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #484f58;
+  background: #3b4c6b;
 }
