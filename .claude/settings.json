@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+"Bash(npm run *)",
+      "Bash(npx eslint *)",
+      "Bash(npx prettier *)",
+      "Bash(node --test)",
+      "Bash(node --test *)"
+    ],
+    "deny": [
+      "Bash(gh api --method DELETE *)",
+      "Bash(gh api * --method DELETE)",
+      "Bash(gh api * --method DELETE *)"
+    ]
+  },
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "npx eslint . && npx prettier --check .",
+            "timeout": 60,
+            "statusMessage": "Checking lint and formatting..."
+          }
+        ]
+      }
+    ]
+  }
+}
