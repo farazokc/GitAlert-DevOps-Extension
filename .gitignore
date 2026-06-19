@@ -20,6 +20,9 @@
 # production
 /build
 
+# Claude Code — personal settings override (contains personal PAT permissions)
+.claude/settings.local.json
+
 # misc
 .DS_Store
 *.pem
