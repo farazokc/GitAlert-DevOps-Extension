@@ -15,6 +15,19 @@
     ]
   },
   "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'TDD GATE: Write tests first. Watch them fail RED. Then implement GREEN. If no failing test exists yet, invoke the test-writer skill.'",
+            "timeout": 5,
+            "statusMessage": "TDD gate reminder..."
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [

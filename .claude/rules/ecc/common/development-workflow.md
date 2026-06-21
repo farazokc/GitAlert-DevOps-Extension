@@ -2,6 +2,8 @@
 
 > This file extends [common/git-workflow.md](./git-workflow.md) with the full feature development process that happens before git operations.
 
+> **Sprint tasks:** Invoke `/sprint` at the start of any feature or bugfix. It enforces all steps below in the correct mandatory order and orchestrates the required agents.
+
 ## Feature Implementation Workflow
 
 0. **Research & Reuse** _(mandatory before any new implementation)_
