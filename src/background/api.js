@@ -8,34 +8,14 @@ import {
   normalizeRepository,
   toCanonicalIdentity,
 } from "./azure.mjs";
+import {
+  UnauthorizedError,
+  hasVerifiedIdentity,
+  updateAssignmentState,
+  withRetry,
+} from "./api-helpers.mjs";
 
-export class UnauthorizedError extends Error {
-  constructor(message = "Unauthorized") {
-    super(message);
-    this.name = "UnauthorizedError";
-  }
-}
-
-const MAX_RETRIES = 3;
-const BASE_DELAY_MS = 1000;
-
-async function withRetry(fn, retries = MAX_RETRIES) {
-  for (let attempt = 1; attempt <= retries; attempt++) {
-    try {
-      return await fn();
-    } catch (err) {
-      if (err instanceof UnauthorizedError) throw err;
-      if (attempt === retries) throw err;
-
-      const delay = BASE_DELAY_MS * Math.pow(2, attempt - 1);
-      console.warn(
-        `Attempt ${attempt}/${retries} failed, retrying in ${delay}ms...`,
-        err.message,
-      );
-      await new Promise((resolve) => setTimeout(resolve, delay));
-    }
-  }
-}
+export { UnauthorizedError };
 
 async function azureFetchJson(url, token) {
   return withRetry(async () => {
@@ -76,10 +56,6 @@ export async function validateAzureSession(organization, token) {
   };
 }
 
-function hasVerifiedIdentity(config) {
-  return config.identityVerificationState === "verified" && !!config.userEmail;
-}
-
 export async function fetchRepositories() {
   const config = await getConfig();
   if (!config.token || !config.organization) return [];
@@ -111,22 +87,6 @@ async function fetchProjectPullRequests(config) {
   }
 
   return all;
-}
-
-function updateAssignmentState(config, assignmentKeys) {
-  const knownAssignments = config.knownAssignments || [];
-  const retainedAssignments = knownAssignments.filter((key) =>
-    assignmentKeys.has(key),
-  );
-
-  const newAssignments = [...assignmentKeys].filter(
-    (key) => !retainedAssignments.includes(key),
-  );
-
-  return {
-    knownAssignments: [...retainedAssignments, ...newAssignments],
-    newAssignments,
-  };
 }
 
 export async function pollPullRequests() {

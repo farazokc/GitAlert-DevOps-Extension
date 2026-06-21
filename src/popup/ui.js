@@ -1,4 +1,4 @@
-import { formatTime, getTimeAgo } from "./utils.js";
+import { formatTime, getTimeAgo } from "./utils.mjs";
 
 export function resetDashboard() {
   document.getElementById("statAssigned").textContent = "0";

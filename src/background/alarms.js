@@ -1,30 +1,24 @@
 import { getConfig, setConfig } from "./storage.js";
 import { sendNotification } from "./notifications.js";
 import { pollPullRequests } from "./api.js";
+import { shouldFireReminder, getUrgentPRsDue } from "./alarm-helpers.mjs";
 
 export const POLL_INTERVAL_MINUTES = 2;
 
 export async function checkScheduledReminders() {
   const config = await getConfig();
-  if (config.identityVerificationState !== "verified") return;
-  if (!config.notificationsEnabled) return;
-  if (!config.reminders || config.reminders.length === 0) return;
-  if (!config.prData || config.prData.stats.assignedToReview === 0) return;
-
   const now = new Date();
   const currentTime = `${String(now.getHours()).padStart(2, "0")}:${String(
     now.getMinutes(),
   ).padStart(2, "0")}`;
 
-  for (const reminder of config.reminders) {
-    if (reminder === currentTime) {
-      sendNotification(
-        "⏰ PR Review Reminder",
-        `You have ${config.prData.stats.assignedToReview} PR(s) waiting for your review.`,
-        null,
-      );
-    }
-  }
+  if (!shouldFireReminder(config, currentTime)) return;
+
+  sendNotification(
+    "⏰ PR Review Reminder",
+    `You have ${config.prData.stats.assignedToReview} PR(s) waiting for your review.`,
+    null,
+  );
 }
 
 export async function checkUrgentPRs() {
@@ -35,28 +29,19 @@ export async function checkUrgentPRs() {
 
   const lastUrgentNotified = config.lastUrgentNotified || {};
   const now = Date.now();
-  const RE_NOTIFY_INTERVAL = 5 * 60 * 1000; // 5 minutes
-
   const urgentPRs = config.prData.assignedToMe.filter((pr) => pr.isUrgent);
+  const due = getUrgentPRsDue(urgentPRs, lastUrgentNotified, now);
 
-  let updatedNotifications = false;
-
-  for (const pr of urgentPRs) {
-    const prKey = `${pr.repo}#${pr.number}`;
-    const lastNotified = lastUrgentNotified[prKey] || 0;
-
-    if (now - lastNotified > RE_NOTIFY_INTERVAL) {
-      sendNotification(
-        "🚨 Urgent PR Needs Review!",
-        `[${pr.repo}] ${pr.title}\nThis PR has an urgent label and needs your attention.`,
-        pr.url,
-      );
-      lastUrgentNotified[prKey] = now;
-      updatedNotifications = true;
-    }
+  for (const pr of due) {
+    sendNotification(
+      "🚨 Urgent PR Needs Review!",
+      `[${pr.repo}] ${pr.title}\nThis PR has an urgent label and needs your attention.`,
+      pr.url,
+    );
+    lastUrgentNotified[`${pr.repo}#${pr.number}`] = now;
   }
 
-  if (updatedNotifications) {
+  if (due.length > 0) {
     await setConfig({ lastUrgentNotified });
   }
 }

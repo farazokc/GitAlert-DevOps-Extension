@@ -5,8 +5,11 @@ import {
   buildBasicAuthHeader,
   classifyPullRequest,
   createBootstrapIdentity,
+  createPullRequestUrl,
   findMatchingIdentity,
+  getIdentityKeys,
   matchesCurrentUser,
+  normalizeRepository,
   toCanonicalIdentity,
 } from "../src/background/azure.mjs";
 
@@ -147,4 +150,95 @@ test("toCanonicalIdentity preserves Azure DevOps identity fields", () => {
     userEmail: "jane@example.com",
     userAvatarUrl: "https://avatar",
   });
+});
+
+test("normalizeRepository maps all repo fields correctly", () => {
+  const repo = {
+    id: "repo-uuid",
+    name: "MyRepo",
+    project: { id: "proj-uuid", name: "MyProject" },
+    remoteUrl: "https://dev.azure.com/org/MyProject/_git/MyRepo",
+  };
+
+  assert.deepEqual(normalizeRepository(repo), {
+    repositoryId: "repo-uuid",
+    repositoryName: "MyRepo",
+    projectId: "proj-uuid",
+    projectName: "MyProject",
+    remoteUrl: "https://dev.azure.com/org/MyProject/_git/MyRepo",
+  });
+});
+
+test("normalizeRepository falls back to webUrl when remoteUrl is absent", () => {
+  const repo = {
+    id: "repo-uuid",
+    name: "MyRepo",
+    webUrl: "https://fallback-url",
+  };
+
+  const result = normalizeRepository(repo);
+
+  assert.equal(result.remoteUrl, "https://fallback-url");
+  assert.equal(result.projectId, "");
+  assert.equal(result.projectName, "");
+});
+
+test("normalizeRepository returns empty remoteUrl when both url fields are absent", () => {
+  const repo = { id: "repo-uuid", name: "MyRepo" };
+
+  assert.equal(normalizeRepository(repo).remoteUrl, "");
+});
+
+test("createPullRequestUrl builds the correct Azure DevOps URL", () => {
+  const url = createPullRequestUrl("myorg", "MyProject", "MyRepo", 42);
+
+  assert.equal(
+    url,
+    "https://dev.azure.com/myorg/MyProject/_git/MyRepo/pullrequest/42",
+  );
+});
+
+test("createPullRequestUrl percent-encodes spaces in path segments", () => {
+  const url = createPullRequestUrl("my org", "My Project", "My Repo", 1);
+
+  assert.equal(
+    url,
+    "https://dev.azure.com/my%20org/My%20Project/_git/My%20Repo/pullrequest/1",
+  );
+});
+
+test("getIdentityKeys returns normalized keys for all present identity fields", () => {
+  const identity = {
+    id: "user-1",
+    descriptor: "aad.abc",
+    uniqueName: "USER@EXAMPLE.COM",
+    emailAddress: "user@example.com",
+    principalName: "user@example.com",
+  };
+
+  const keys = getIdentityKeys(identity);
+
+  assert.deepEqual(keys, [
+    "user-1",
+    "aad.abc",
+    "user@example.com",
+    "user@example.com",
+    "user@example.com",
+  ]);
+});
+
+test("getIdentityKeys filters out null, undefined, and empty values", () => {
+  const identity = {
+    id: "user-1",
+    descriptor: null,
+    uniqueName: "",
+    emailAddress: undefined,
+    principalName: "user@example.com",
+  };
+
+  assert.deepEqual(getIdentityKeys(identity), ["user-1", "user@example.com"]);
+});
+
+test("getIdentityKeys returns empty array for null identity", () => {
+  assert.deepEqual(getIdentityKeys(null), []);
 });
