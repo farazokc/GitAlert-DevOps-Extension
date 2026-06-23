@@ -90,6 +90,7 @@ test("classifyPullRequest marks assigned reviewers", () => {
   const result = classifyPullRequest(pr, currentUser, "spursolutions");
   assert.equal(result.assignedToMe, true);
   assert.equal(result.myPRsPending, false);
+  assert.equal(result.reviewedByMe, false);
 });
 
 test("createBootstrapIdentity uses exact email as identity keys", () => {
@@ -241,4 +242,118 @@ test("getIdentityKeys filters out null, undefined, and empty values", () => {
 
 test("getIdentityKeys returns empty array for null identity", () => {
   assert.deepEqual(getIdentityKeys(null), []);
+});
+
+// Phase 2 — reviewer vote awareness tests
+
+function makePRWithReviewer(reviewerOverrides) {
+  return {
+    pullRequestId: 100,
+    title: "Vote test PR",
+    creationDate: "2026-06-22T10:00:00Z",
+    createdBy: {
+      id: "author-1",
+      displayName: "Author",
+      uniqueName: "author@example.com",
+      imageUrl: "",
+    },
+    repository: {
+      id: "repo-1",
+      name: "RepoOne",
+      project: { id: "proj-1", name: "VL-Core" },
+    },
+    reviewers: [
+      Object.assign(
+        {
+          id: "reviewer-1",
+          displayName: "Reviewer",
+          uniqueName: "reviewer@example.com",
+        },
+        reviewerOverrides,
+      ),
+    ],
+  };
+}
+
+const voteCurrentUser = {
+  id: "reviewer-1",
+  emailAddress: "reviewer@example.com",
+};
+
+test("classifyPullRequest sets assignedToMe true when reviewer vote is 0", () => {
+  const result = classifyPullRequest(
+    makePRWithReviewer({ vote: 0 }),
+    voteCurrentUser,
+    "myorg",
+  );
+  assert.equal(result.assignedToMe, true);
+  assert.equal(result.reviewedByMe, false);
+});
+
+test("classifyPullRequest sets reviewedByMe true when vote is 10 (approved)", () => {
+  const result = classifyPullRequest(
+    makePRWithReviewer({ vote: 10 }),
+    voteCurrentUser,
+    "myorg",
+  );
+  assert.equal(result.assignedToMe, false);
+  assert.equal(result.reviewedByMe, true);
+});
+
+test("classifyPullRequest sets reviewedByMe true when vote is 5 (approved with suggestions)", () => {
+  const result = classifyPullRequest(
+    makePRWithReviewer({ vote: 5 }),
+    voteCurrentUser,
+    "myorg",
+  );
+  assert.equal(result.assignedToMe, false);
+  assert.equal(result.reviewedByMe, true);
+});
+
+test("classifyPullRequest sets reviewedByMe true when vote is -5 (waiting for author)", () => {
+  const result = classifyPullRequest(
+    makePRWithReviewer({ vote: -5 }),
+    voteCurrentUser,
+    "myorg",
+  );
+  assert.equal(result.assignedToMe, false);
+  assert.equal(result.reviewedByMe, true);
+});
+
+test("classifyPullRequest sets reviewedByMe true when vote is -10 (rejected)", () => {
+  const result = classifyPullRequest(
+    makePRWithReviewer({ vote: -10 }),
+    voteCurrentUser,
+    "myorg",
+  );
+  assert.equal(result.assignedToMe, false);
+  assert.equal(result.reviewedByMe, true);
+});
+
+test("classifyPullRequest exposes myVote on prInfo when user is reviewer", () => {
+  const result = classifyPullRequest(
+    makePRWithReviewer({ vote: 10 }),
+    voteCurrentUser,
+    "myorg",
+  );
+  assert.equal(result.prInfo.myVote, 10);
+});
+
+test("classifyPullRequest sets myVote to 0 when reviewer vote field is absent", () => {
+  const result = classifyPullRequest(
+    makePRWithReviewer({}),
+    voteCurrentUser,
+    "myorg",
+  );
+  assert.equal(result.prInfo.myVote, 0);
+});
+
+test("classifyPullRequest sets myVote to null when user is not a reviewer", () => {
+  const nonReviewer = { id: "other-user", emailAddress: "other@example.com" };
+  const result = classifyPullRequest(
+    makePRWithReviewer({ vote: 10 }),
+    nonReviewer,
+    "myorg",
+  );
+  assert.equal(result.prInfo.myVote, null);
 });

@@ -96,9 +96,13 @@ export function findMatchingIdentity(pullRequests, currentUser) {
 
 export function classifyPullRequest(pr, currentUser, organization) {
   const reviewers = pr.reviewers || [];
-  const assignedToMe = reviewers.some((reviewer) =>
+  const myReviewerEntry = reviewers.find((reviewer) =>
     matchesCurrentUser(currentUser, reviewer),
   );
+  const assignedToMe =
+    myReviewerEntry !== undefined && (myReviewerEntry.vote ?? 0) === 0;
+  const reviewedByMe =
+    myReviewerEntry !== undefined && (myReviewerEntry.vote ?? 0) !== 0;
   const authoredByMe = matchesCurrentUser(currentUser, pr.createdBy);
   const otherReviewers = reviewers.filter(
     (reviewer) => !matchesCurrentUser(currentUser, reviewer),
@@ -111,6 +115,7 @@ export function classifyPullRequest(pr, currentUser, organization) {
 
   return {
     assignedToMe,
+    reviewedByMe,
     myPRsPending: authoredByMe && otherReviewers.length > 0,
     changesRequested,
     prInfo: {
@@ -136,6 +141,8 @@ export function classifyPullRequest(pr, currentUser, organization) {
       isUrgent: false,
       repositoryId: pr.repository.id,
       projectId: pr.repository.project.id,
+      myVote:
+        myReviewerEntry !== undefined ? (myReviewerEntry.vote ?? 0) : null,
     },
     assignmentKey: `${pr.repository.project.id}/${pr.repository.id}/${pr.pullRequestId}`,
   };
