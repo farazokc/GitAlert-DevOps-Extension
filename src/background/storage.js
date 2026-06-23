@@ -22,6 +22,8 @@ export async function getConfig() {
         "knownAssignments",
         "lastUrgentNotified",
         "availableRepos",
+        "discussionEnrichmentCursor",
+        "discussionData",
       ],
       resolve,
     );
@@ -55,6 +57,8 @@ export async function clearAuthSession() {
         lastFetch: null,
         knownAssignments: [],
         lastUrgentNotified: {},
+        discussionData: {},
+        discussionEnrichmentCursor: 0,
       },
       resolve,
     );

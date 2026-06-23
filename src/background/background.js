@@ -27,12 +27,15 @@ chrome.runtime.onInstalled.addListener((details) => {
       identityVerificationState: "unverified",
       knownAssignments: [],
       lastUrgentNotified: {},
+      discussionEnrichmentCursor: 0,
+      discussionData: {},
     });
   }
 
   chrome.alarms.create("pollPRs", { periodInMinutes: POLL_INTERVAL_MINUTES });
   chrome.alarms.create("checkReminders", { periodInMinutes: 1 });
   chrome.alarms.create("urgentPRReminder", { periodInMinutes: 5 });
+  chrome.alarms.create("discussionEnrichment", { periodInMinutes: 5 });
 });
 
 // Handle alarms

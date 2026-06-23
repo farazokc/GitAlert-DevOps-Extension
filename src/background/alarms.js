@@ -1,6 +1,6 @@
 import { getConfig, setConfig } from "./storage.js";
 import { sendNotification } from "./notifications.js";
-import { pollPullRequests } from "./api.js";
+import { enrichDiscussions, pollPullRequests } from "./api.js";
 import { shouldFireReminder, getUrgentPRsDue } from "./alarm-helpers.mjs";
 
 export const POLL_INTERVAL_MINUTES = 2;
@@ -53,6 +53,8 @@ export async function handleAlarm(alarm) {
     await checkScheduledReminders();
   } else if (alarm.name === "urgentPRReminder") {
     await checkUrgentPRs();
+  } else if (alarm.name === "discussionEnrichment") {
+    await enrichDiscussions();
   }
 }
 
@@ -71,6 +73,11 @@ export function setupAlarms() {
   chrome.alarms.get("urgentPRReminder", (alarm) => {
     if (!alarm) {
       chrome.alarms.create("urgentPRReminder", { periodInMinutes: 5 });
+    }
+  });
+  chrome.alarms.get("discussionEnrichment", (alarm) => {
+    if (!alarm) {
+      chrome.alarms.create("discussionEnrichment", { periodInMinutes: 5 });
     }
   });
 }
