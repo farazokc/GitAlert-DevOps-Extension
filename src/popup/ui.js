@@ -181,6 +181,12 @@ export function renderDashboard(data, currentUrgentTags) {
       .map((pr) => renderPRItem(pr, "changes", currentUrgentTags))
       .join("");
   }
+  if (data.reviewedByMe && data.reviewedByMe.length > 0) {
+    html += `<div class="pr-section-title">✅ Reviewed by Me (${data.reviewedByMe.length})</div>`;
+    html += data.reviewedByMe
+      .map((pr) => renderPRItem(pr, "reviewed", currentUrgentTags))
+      .join("");
+  }
   if (!html) {
     html = `
       <div class="empty-state">
@@ -192,10 +198,17 @@ export function renderDashboard(data, currentUrgentTags) {
 }
 
 function renderPRItem(pr, type, currentUrgentTags) {
-  const icon =
-    type === "changes"
-      ? '<svg class="pr-icon changes" viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354Z"/></svg>'
-      : '<svg class="pr-icon open" viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354Z"/></svg>';
+  let icon;
+  if (type === "changes") {
+    icon =
+      '<svg class="pr-icon changes" viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354Z"/></svg>';
+  } else if (type === "reviewed") {
+    icon =
+      '<svg class="pr-icon reviewed" viewBox="0 0 16 16" fill="currentColor"><path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.75.75 0 0 1 1.06-1.06L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"/></svg>';
+  } else {
+    icon =
+      '<svg class="pr-icon open" viewBox="0 0 16 16" fill="currentColor"><path d="M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354Z"/></svg>';
+  }
 
   const labels = pr.labels
     .map((l) => {
@@ -206,6 +219,12 @@ function renderPRItem(pr, type, currentUrgentTags) {
     })
     .join("");
 
+  const unresolvedBadge =
+    pr.unresolvedDiscussions > 0
+      ? `<span class="pr-label default">${pr.unresolvedDiscussions} unresolved</span>`
+      : "";
+
+  const allLabels = labels + unresolvedBadge;
   const timeAgo = getTimeAgo(pr.createdAt);
   return `
     <div class="pr-item" data-url="${pr.url}">
@@ -213,7 +232,7 @@ function renderPRItem(pr, type, currentUrgentTags) {
       <div class="pr-info">
         <div class="pr-title">${pr.title}</div>
         <div class="pr-meta">${pr.repo}#${pr.number} · ${pr.author} · ${timeAgo}</div>
-        ${labels ? `<div class="pr-labels">${labels}</div>` : ""}
+        ${allLabels ? `<div class="pr-labels">${allLabels}</div>` : ""}
       </div>
     </div>`;
 }

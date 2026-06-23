@@ -28,6 +28,7 @@ async function init() {
     "userAvatarUrl",
     "userIdentityEmail",
     "identityVerificationState",
+    "discussionData",
   ]);
 
   currentUrgentTags = config.urgentTags || ["Important", "Urgent", "Critical"];
@@ -36,7 +37,16 @@ async function init() {
   if (!config.token || !config.organization) {
     UI.showSetup();
   } else {
-    UI.showApp(config, currentUrgentTags);
+    const initConfig = config.prData
+      ? {
+          ...config,
+          prData: mergeDiscussionData(
+            config.prData,
+            config.discussionData || {},
+          ),
+        }
+      : config;
+    UI.showApp(initConfig, currentUrgentTags);
     if (!config.prData) fetchPRs();
   }
 
@@ -351,23 +361,56 @@ function confirmIdentity() {
   });
 }
 
-function fetchPRs() {
+function mergeDiscussionData(prData, discussionData) {
+  const buckets = [
+    "assignedToMe",
+    "myPRsPending",
+    "changesRequested",
+    "reviewedByMe",
+    "allPRs",
+  ];
+  const result = { ...prData };
+  for (const bucket of buckets) {
+    if (!Array.isArray(prData[bucket])) continue;
+    result[bucket] = prData[bucket].map((pr) => {
+      const prKey = `${pr.projectId}/${pr.repositoryId}/${pr.id}`;
+      const entry = discussionData[prKey];
+      return entry
+        ? { ...pr, unresolvedDiscussions: entry.unresolvedCount }
+        : pr;
+    });
+  }
+  return result;
+}
+
+async function fetchPRs() {
   UI.resetDashboard();
   document.getElementById("prLoading").style.display = "";
   document.getElementById("statusText").textContent = "Fetching...";
 
-  chrome.runtime.sendMessage({ type: "FETCH_PRS" }, (response) => {
+  chrome.runtime.sendMessage({ type: "FETCH_PRS" }, async (response) => {
     document.getElementById("prLoading").style.display = "none";
-    if (response && response.success) {
-      if (response.data) {
-        UI.renderDashboard(response.data, currentUrgentTags);
-        UI.updateStatus(new Date().toISOString());
+    try {
+      if (response && response.success) {
+        if (response.data) {
+          const { discussionData } = await getStorage(["discussionData"]);
+          const merged = mergeDiscussionData(
+            response.data,
+            discussionData || {},
+          );
+          UI.renderDashboard(merged, currentUrgentTags);
+          UI.updateStatus(new Date().toISOString());
+        } else {
+          document.getElementById("statusText").textContent = "Connected";
+        }
       } else {
-        document.getElementById("statusText").textContent = "Connected";
+        document.getElementById("statusText").textContent =
+          response?.error || "Error fetching data";
       }
-    } else {
+    } catch (err) {
       document.getElementById("statusText").textContent =
-        response?.error || "Error fetching data";
+        "Error rendering data";
+      console.error("fetchPRs render error:", err.message);
     }
   });
 }
@@ -450,10 +493,9 @@ async function addReminder() {
   const reminders = config.reminders || [];
   if (reminders.includes(time)) return;
 
-  reminders.push(time);
-  reminders.sort();
-  await setStorage({ reminders });
-  UI.renderReminders(reminders);
+  const nextReminders = [...reminders, time].sort();
+  await setStorage({ reminders: nextReminders });
+  UI.renderReminders(nextReminders);
 }
 
 async function removeReminder(time) {
@@ -472,10 +514,10 @@ async function addTag() {
   const tags = config.urgentTags || [];
   if (tags.some((t) => t.toLowerCase() === tag.toLowerCase())) return;
 
-  tags.push(tag);
-  currentUrgentTags = tags;
-  await setStorage({ urgentTags: tags });
-  UI.renderTags(tags);
+  const nextTags = [...tags, tag];
+  currentUrgentTags = nextTags;
+  await setStorage({ urgentTags: nextTags });
+  UI.renderTags(nextTags);
   if (config.prData) UI.renderDashboard(config.prData, currentUrgentTags);
   input.value = "";
 }
