@@ -29,7 +29,7 @@ export async function checkUrgentPRs() {
 
   const lastUrgentNotified = config.lastUrgentNotified || {};
   const now = Date.now();
-  const urgentPRs = config.prData.assignedToMe.filter((pr) => pr.isUrgent);
+  const urgentPRs = config.prData.urgent || [];
   const due = getUrgentPRsDue(urgentPRs, lastUrgentNotified, now);
 
   for (const pr of due) {

@@ -1,4 +1,4 @@
-import { formatTime, getTimeAgo } from "./utils.mjs";
+import { escapeHtml, formatTime, getTimeAgo } from "./utils.mjs";
 
 export function resetDashboard() {
   document.getElementById("statAssigned").textContent = "0";
@@ -97,8 +97,8 @@ export function renderRepos(repos) {
       return `
       <div class="repo-item">
         <div>
-          <div class="repo-name">${repo.repositoryName}</div>
-          <div class="repo-owner">${repo.projectName}</div>
+          <div class="repo-name">${escapeHtml(repo.repositoryName)}</div>
+          <div class="repo-owner">${escapeHtml(repo.projectName)}</div>
         </div>
         <button class="btn btn-danger btn-sm repo-remove-btn" data-repo-id="${repo.repositoryId}">Remove</button>
       </div>`;
@@ -135,8 +135,8 @@ export function renderTags(tags) {
     .map(
       (tag) => `
     <span class="tag-chip">
-      ${tag}
-      <span class="remove tag-remove-btn" data-tag="${tag}">✕</span>
+      ${escapeHtml(tag)}
+      <span class="remove tag-remove-btn" data-tag="${escapeHtml(tag)}">✕</span>
     </span>`,
     )
     .join("");
@@ -163,6 +163,12 @@ export function renderDashboard(data, currentUrgentTags) {
 
   const content = document.getElementById("prContent");
   let html = "";
+  if (data.urgent && data.urgent.length > 0) {
+    html += `<div class="pr-section-title">🚨 Urgent (${data.urgent.length})</div>`;
+    html += data.urgent
+      .map((pr) => renderPRItem(pr, "open", currentUrgentTags))
+      .join("");
+  }
   if (data.assignedToMe.length > 0) {
     html += `<div class="pr-section-title">🔍 Assigned to Review (${data.assignedToMe.length})</div>`;
     html += data.assignedToMe
@@ -215,7 +221,7 @@ function renderPRItem(pr, type, currentUrgentTags) {
       const isUrgent =
         pr.isUrgent ||
         currentUrgentTags.some((t) => t.toLowerCase() === l.name.toLowerCase());
-      return `<span class="pr-label ${isUrgent ? "important" : "default"}">${l.name}</span>`;
+      return `<span class="pr-label ${isUrgent ? "important" : "default"}">${escapeHtml(l.name)}</span>`;
     })
     .join("");
 
@@ -230,8 +236,8 @@ function renderPRItem(pr, type, currentUrgentTags) {
     <div class="pr-item" data-url="${pr.url}">
       ${icon}
       <div class="pr-info">
-        <div class="pr-title">${pr.title}</div>
-        <div class="pr-meta">${pr.repo}#${pr.number} · ${pr.author} · ${timeAgo}</div>
+        <div class="pr-title">${escapeHtml(pr.title)}</div>
+        <div class="pr-meta">${escapeHtml(pr.repo)}#${pr.number} · ${escapeHtml(pr.author)} · ${timeAgo}</div>
         ${allLabels ? `<div class="pr-labels">${allLabels}</div>` : ""}
       </div>
     </div>`;
@@ -269,7 +275,7 @@ export function renderDiscoveryResults(availableRepos, connectedRepos, query) {
       const isConnected = connectedRepoIds.has(repo.repositoryId);
       return `
       <div class="discovery-item ${isConnected ? "connected" : ""}" data-repo-id="${repo.repositoryId}">
-        <div class="repo-full-name">${repo.projectName} / ${repo.repositoryName}</div>
+        <div class="repo-full-name">${escapeHtml(repo.projectName)} / ${escapeHtml(repo.repositoryName)}</div>
         ${isConnected ? '<span class="status-badge">Connected</span>' : '<span class="add-icon">+</span>'}
       </div>`;
     })

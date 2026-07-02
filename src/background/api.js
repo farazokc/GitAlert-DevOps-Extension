@@ -19,6 +19,7 @@ import {
   getEnrichmentBatch,
   getRelevantPRs,
 } from "./discussion-helpers.mjs";
+import { isUrgentPR } from "./urgency-helpers.mjs";
 
 export { UnauthorizedError };
 
@@ -116,12 +117,14 @@ export async function pollPullRequests() {
       myPRsPending: [],
       changesRequested: [],
       reviewedByMe: [],
+      urgent: [],
       allPRs: [],
       stats: {
         assignedToReview: 0,
         myPRsPending: 0,
         changesRequested: 0,
         reviewedByMe: 0,
+        urgentCount: 0,
         totalOpen: 0,
       },
     };
@@ -131,33 +134,44 @@ export async function pollPullRequests() {
 
     for (const pr of pullRequests) {
       const result = classifyPullRequest(pr, currentUser, config.organization);
-      prData.allPRs.push(result.prInfo);
+      const prInfo = {
+        ...result.prInfo,
+        isUrgent: isUrgentPR(result.prInfo, config.urgentTags || []),
+      };
+      prData.allPRs.push(prInfo);
 
       if (isVerified && result.assignedToMe) {
-        prData.assignedToMe.push(result.prInfo);
+        prData.assignedToMe.push(prInfo);
         prData.stats.assignedToReview++;
         activeAssignmentKeys.add(result.assignmentKey);
         notifications.push({
           assignmentKey: result.assignmentKey,
-          author: result.prInfo.author,
-          title: result.prInfo.title,
-          url: result.prInfo.url,
+          author: prInfo.author,
+          title: prInfo.title,
+          url: prInfo.url,
         });
       }
 
       if (isVerified && result.myPRsPending) {
-        prData.myPRsPending.push(result.prInfo);
+        prData.myPRsPending.push(prInfo);
         prData.stats.myPRsPending++;
       }
 
       if (isVerified && result.changesRequested) {
-        prData.changesRequested.push(result.prInfo);
+        prData.changesRequested.push(prInfo);
         prData.stats.changesRequested++;
       }
 
       if (isVerified && result.reviewedByMe) {
-        prData.reviewedByMe.push(result.prInfo);
+        prData.reviewedByMe.push(prInfo);
         prData.stats.reviewedByMe++;
+      }
+
+      // Urgent PRs also stay in assignedToMe so badge count and alarm-driven
+      // notifications (checkUrgentPRs) continue to work correctly.
+      if (isVerified && result.assignedToMe && prInfo.isUrgent) {
+        prData.urgent.push(prInfo);
+        prData.stats.urgentCount++;
       }
     }
 

@@ -194,8 +194,9 @@
               margin-bottom: 8px;
             "
           >
-            Azure DevOps urgent-label handling is temporarily deferred. PRs are
-            currently treated as non-urgent.
+            PRs are marked urgent when any configured tag matches an Azure
+            DevOps label (exact, case-insensitive) or appears in the PR title
+            (substring, case-insensitive).
           </p>
           <div class="tag-list" id="tagList"></div>
           <div class="tag-input-row">
@@ -382,8 +383,8 @@
             <div class="about-feature-info">
               <h4>Urgent Tag Alerts</h4>
               <p>
-                Urgent tag support is temporarily deferred during the Azure
-                DevOps migration.
+                Get re-notified every 5 minutes when an urgent PR is assigned to
+                you and still needs your review.
               </p>
             </div>
           </div>

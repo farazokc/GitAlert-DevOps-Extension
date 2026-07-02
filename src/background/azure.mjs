@@ -133,7 +133,7 @@ export function classifyPullRequest(pr, currentUser, organization) {
         pr.createdBy?.displayName || pr.createdBy?.uniqueName || "Unknown",
       authorAvatar: pr.createdBy?.imageUrl || "",
       createdAt: pr.creationDate,
-      labels: [],
+      labels: (pr.labels || []).map((label) => ({ name: label.name })),
       reviewers: reviewers.map(
         (reviewer) =>
           reviewer.displayName || reviewer.uniqueName || reviewer.id,

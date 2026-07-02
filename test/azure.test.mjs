@@ -357,3 +357,23 @@ test("classifyPullRequest sets myVote to null when user is not a reviewer", () =
   );
   assert.equal(result.prInfo.myVote, null);
 });
+
+// Phase 3 — label extraction tests
+
+test("classifyPullRequest extracts labels from pr.labels", () => {
+  const pr = {
+    ...makePRWithReviewer({ vote: 0 }),
+    labels: [{ id: "1", name: "Urgent", active: true }],
+  };
+  const result = classifyPullRequest(pr, voteCurrentUser, "myorg");
+  assert.deepEqual(result.prInfo.labels, [{ name: "Urgent" }]);
+});
+
+test("classifyPullRequest returns empty labels array when pr.labels is absent", () => {
+  const result = classifyPullRequest(
+    makePRWithReviewer({ vote: 0 }),
+    voteCurrentUser,
+    "myorg",
+  );
+  assert.deepEqual(result.prInfo.labels, []);
+});

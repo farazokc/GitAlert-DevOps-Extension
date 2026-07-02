@@ -367,6 +367,7 @@ function mergeDiscussionData(prData, discussionData) {
     "myPRsPending",
     "changesRequested",
     "reviewedByMe",
+    "urgent",
     "allPRs",
   ];
   const result = { ...prData };
