@@ -6,7 +6,24 @@ compatibility: claude-code-only
 
 # Sprint Workflow
 
-Invoke `/sprint` at the start of every feature or bugfix task. Do not write any code before completing Step 1.
+Invoke `/sprint` at the start of every feature or bugfix task. Do not write any code before completing Step 0.
+
+---
+
+## Step 0 — Branch (before touching any file)
+
+Check the current branch. If on `main` (or any non-feature branch), create a feature branch now:
+
+```bash
+git checkout main && git pull origin main
+git checkout -b feature/<kebab-case-description>
+```
+
+Name the branch from the sprint/task description. Examples:
+- `feature/sprint-3-urgent-pr-support`
+- `feature/sprint-4-reminder-controls`
+
+**Never implement on `main`.** If already on a feature branch, skip this step.
 
 ---
 
@@ -95,16 +112,42 @@ Must be clean before the sprint task is marked complete.
 
 ---
 
+## Step 8 — Create PR
+
+Once lint is clean and all tasks are marked completed, push the branch and open a PR:
+
+```bash
+git push -u origin <branch-name>
+gh pr create --title "<conventional-commit-title>" --body "$(cat <<'EOF'
+## Summary
+- <bullet point summary of what changed>
+
+## Test plan
+- [ ] `node --test` passes (N tests)
+- [ ] `npx eslint .` clean
+- [ ] Manual verification in browser (describe what was checked)
+
+🤖 Generated with [Claude Code](https://claude.ai/claude-code)
+EOF
+)"
+```
+
+Return the PR URL to the user.
+
+---
+
 ## Completion gate
 
 Before marking any sprint task done:
 
+- [ ] On a feature branch (not `main`)
 - [ ] Every new function has a test that was **watched to fail** before implementation
 - [ ] All tests pass: `node --test`
 - [ ] `code-reviewer` agent was invoked
 - [ ] `security-reviewer` agent was invoked (if auth/API/storage touched)
 - [ ] `npx eslint .` is clean
 - [ ] All `TaskCreate` tasks are marked `completed`
+- [ ] PR created and URL provided to user
 
 ---
 
@@ -116,5 +159,6 @@ Before marking any sprint task done:
 | `Skill("test-writer")` | Step 2 | Test stubs in `node:test` format for this project |
 | `Agent(code-reviewer)` | Step 5 | Correctness, conventions, module system, style |
 | `Agent(security-reviewer)` | Step 6 | PAT handling, storage access, API calls, CSP |
+| `gh pr create` | Step 8 | Open PR for the feature branch |
 
 The Stop hook already covers lint (Step 7) automatically — do not duplicate it.
